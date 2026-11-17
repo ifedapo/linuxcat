@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="LinuxCat: documented AWS EC2 Ubuntu server deployment, SSH access, DNS, BIND9, Nginx and cloud cost monitoring.">
+  <meta name="theme-color" content="#101827">
+  <title>LinuxCat | Linux Server & Cloud Infrastructure Project</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1220;
+      --surface: #111c2e;
+      --surface-2: #17243a;
+      --surface-3: #0d1728;
+      --text: #e8eef8;
+      --muted: #a8b6ca;
+      --subtle: #74849c;
+      --line: #26364e;
+      --accent: #69d5c5;
+      --accent-2: #8bb8ff;
+      --warning: #f2c879;
+      --success: #81d6a8;
+      --code: #08111f;
+      --shadow: 0 18px 55px rgba(0,0,0,.25);
+      --radius: 18px;
+      --max: 1160px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 85% 0%, rgba(105,213,197,.10), transparent 28rem),
+        radial-gradient(circle at 0% 18%, rgba(139,184,255,.09), transparent 30rem),
+        var(--bg);
+      color: var(--text);
+      font: 16px/1.7 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code, pre, kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    code { color: #b9d8ff; }
+    .wrap { width: min(var(--max), calc(100% - 40px)); margin: 0 auto; }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(11,18,32,.86); backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(38,54,78,.8);
+    }
+    .nav { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); font-weight: 800; letter-spacing: .02em; }
+    .brand-mark {
+      display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #071321; font-weight: 900;
+    }
+    .nav-links { display: flex; flex-wrap: wrap; gap: 16px; font-size: .88rem; }
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+    .hero { padding: 86px 0 60px; }
+    .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .16em; font-size: .76rem; font-weight: 800; }
+    h1 { font-size: clamp(2.5rem, 6vw, 5rem); line-height: 1.04; letter-spacing: -.055em; margin: 16px 0 20px; max-width: 850px; }
+    .hero p { max-width: 760px; color: var(--muted); font-size: 1.12rem; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+    .button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 11px 17px; border: 1px solid var(--line); border-radius: 999px;
+      color: var(--text); background: var(--surface); font-weight: 700; font-size: .92rem;
+    }
+    .button.primary { background: var(--accent); border-color: var(--accent); color: #071321; }
+    .button:hover { text-decoration: none; transform: translateY(-1px); }
+    .chips { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 30px; }
+    .chip { padding: 6px 11px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: rgba(17,28,46,.7); font-size: .82rem; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 12px 0 54px; }
+    .stat { padding: 18px; background: linear-gradient(145deg, var(--surface), var(--surface-3)); border: 1px solid var(--line); border-radius: 15px; }
+    .stat strong { display: block; font-size: 1.25rem; letter-spacing: -.02em; }
+    .stat span { color: var(--muted); font-size: .82rem; }
+    .layout { display: grid; grid-template-columns: 245px minmax(0,1fr); gap: 34px; align-items: start; padding-bottom: 80px; }
+    aside { position: sticky; top: 90px; max-height: calc(100vh - 110px); overflow: auto; padding: 18px; background: rgba(17,28,46,.72); border: 1px solid var(--line); border-radius: var(--radius); }
+    aside h2 { font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; color: var(--subtle); margin: 0 0 12px; }
+    aside a { display: block; padding: 7px 9px; border-radius: 8px; color: var(--muted); font-size: .88rem; }
+    aside a:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
+    main { min-width: 0; }
+    section { margin-bottom: 44px; }
+    .section-head { margin-bottom: 18px; }
+    .section-head .num { color: var(--accent); font: 800 .78rem ui-monospace, monospace; letter-spacing: .1em; }
+    h2 { font-size: clamp(1.55rem, 3vw, 2.1rem); letter-spacing: -.035em; line-height: 1.2; margin: 7px 0 10px; }
+    h3 { font-size: 1.12rem; margin: 25px 0 8px; }
+    p { margin: 9px 0 14px; }
+    .lead, .muted { color: var(--muted); }
+    .panel { background: linear-gradient(145deg, rgba(17,28,46,.96), rgba(13,23,40,.96)); border: 1px solid var(--line); border-radius: var(--radius); padding: 23px; box-shadow: var(--shadow); }
+    .grid-2 { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 15px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
+    .mini-card { padding: 17px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; }
+    .mini-card h3 { margin: 0 0 6px; }
+    .mini-card p { color: var(--muted); font-size: .92rem; margin: 0; }
+    .callout { border-left: 3px solid var(--accent); background: rgba(105,213,197,.07); padding: 14px 17px; border-radius: 0 12px 12px 0; color: var(--muted); margin: 18px 0; }
+    .callout.warning { border-left-color: var(--warning); background: rgba(242,200,121,.07); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 13px; margin: 15px 0; }
+    table { width: 100%; border-collapse: collapse; min-width: 520px; font-size: .91rem; }
+    th, td { text-align: left; padding: 11px 13px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: #c6d5e9; background: var(--surface-2); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
+    tr:last-child td { border-bottom: 0; }
+    td { color: var(--muted); }
+    td:first-child { color: var(--text); font-weight: 650; }
+    pre {
+      position: relative; overflow-x: auto; padding: 18px; margin: 12px 0 20px;
+      background: var(--code); border: 1px solid #1e3049; border-radius: 13px;
+      color: #d4e3f7; font-size: .86rem; line-height: 1.65;
+    }
+    pre code { color: inherit; }
+    .copy {
+      position: absolute; top: 9px; right: 9px; border: 1px solid #334762; border-radius: 7px;
+      padding: 4px 8px; background: #14233a; color: #c9d9ec; cursor: pointer; font-size: .75rem;
+    }
+    .copy:hover { background: #203652; }
+    .status { display: inline-block; border-radius: 999px; padding: 3px 9px; font-size: .75rem; font-weight: 800; white-space: nowrap; }
+    .done { color: var(--success); background: rgba(129,214,168,.12); }
+    .pending { color: var(--warning); background: rgba(242,200,121,.12); }
+    .unknown { color: var(--accent-2); background: rgba(139,184,255,.12); }
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+    .steps li { counter-increment: step; position: relative; padding: 0 0 17px 43px; color: var(--muted); }
+    .steps li::before {
+      content: counter(step); position: absolute; left: 0; top: 0; width: 28px; height: 28px;
+      display: grid; place-items: center; border-radius: 9px; background: var(--surface-2);
+      border: 1px solid var(--line); color: var(--accent); font-weight: 800; font-size: .82rem;
+    }
+    .architecture { padding: 22px; text-align: center; }
+    .arch-node { display: inline-block; padding: 12px 17px; margin: 5px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; font-weight: 700; }
+    .arch-arrow { color: var(--accent); font-size: 1.25rem; display: block; line-height: 1.5; }
+    .arch-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+    .footer { border-top: 1px solid var(--line); padding: 28px 0 42px; color: var(--subtle); font-size: .85rem; }
+    .small { font-size: .84rem; color: var(--subtle); }
+    @media (max-width: 850px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { position: static; max-height: none; }
+      .nav-links { display: none; }
+      .stats { grid-template-columns: repeat(2,1fr); }
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .wrap { width: min(100% - 28px, var(--max)); }
+      .hero { padding: 58px 0 38px; }
+      .stats, .grid-2 { grid-template-columns: 1fr; }
+      .panel { padding: 17px; }
+      h1 { font-size: 2.7rem; }
+    }
+    @media print {
+      :root { color-scheme: light; --bg:#fff; --surface:#fff; --surface-2:#f3f5f8; --surface-3:#fff; --text:#172033; --muted:#39465a; --subtle:#64748b; --line:#d5dce5; --code:#f3f5f8; }
+      body { background: #fff; color: var(--text); }
+      .topbar, aside, .hero-actions, .copy { display:none !important; }
+      .layout { display:block; }
+      .panel, .stat { box-shadow:none; break-inside:avoid; }
+      pre { white-space:pre-wrap; }
+      a { color: #174e9c; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap nav">
+      <a class="brand" href="#top"><span class="brand-mark">LC</span> LINUXCAT</a>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="#overview">Overview</a><a href="#aws">AWS</a><a href="#ssh">SSH</a>
+        <a href="#dns">DNS</a><a href="#web">Web server</a><a href="#monitoring">Monitoring</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap" id="top">
+    <section class="hero">
+      <div class="eyebrow">Cloud infrastructure · Linux administration · DNS</div>
+      <h1>Building and configuring the <span style="color:var(--accent)">LinuxCat</span> server.</h1>
+      <p>A practical project documenting the deployment of an Ubuntu server on AWS EC2, secure SSH administration, domain integration, DNS investigation with BIND9, web-server configuration and cloud cost monitoring.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="#architecture">Explore the architecture ↓</a>
+        <a class="button" href="#commands">Command reference</a>
+      </div>
+      <div class="chips">
+        <span class="chip">Ubuntu Server</span><span class="chip">AWS EC2</span><span class="chip">SSH / ED25519</span>
+        <span class="chip">Namecheap DNS</span><span class="chip">BIND9</span><span class="chip">Nginx</span>
+      </div>
+    </section>
+
+    <div class="stats" aria-label="Project facts">
+      <div class="stat"><strong>linuxcat.site</strong><span>Project domain</span></div>
+      <div class="stat"><strong>AWS EC2</strong><span>Cloud compute platform</span></div>
+      <div class="stat"><strong>Ubuntu</strong><span>Server operating system</span></div>
+      <div class="stat"><strong>$10 / month</strong><span>Target budget</span></div>
+    </div>
+
+    <div class="layout">
+      <aside>
+        <h2>Documentation</h2>
+        <a href="#overview">01 · Project overview</a>
+        <a href="#architecture">02 · Architecture</a>
+        <a href="#aws">03 · EC2 deployment</a>
+        <a href="#ssh">04 · SSH access</a>
+        <a href="#network">05 · Security groups</a>
+        <a href="#elastic-ip">06 · Elastic IP</a>
+        <a href="#dns">07 · Domain & DNS</a>
+        <a href="#bind">08 · BIND9</a>
+        <a href="#web">09 · Apache2 & Nginx</a>
+        <a href="#troubleshooting">10 · Troubleshooting</a>
+        <a href="#monitoring">11 · AWS monitoring</a>
+        <a href="#status">12 · Project status</a>
+        <a href="#commands">13 · Command reference</a>
+      </aside>
+
+      <main>
+        <section id="overview">
+          <div class="section-head"><div class="num">01 / OVERVIEW</div><h2>Project overview</h2></div>
+          <div class="panel">
+            <p class="lead">LinuxCat is a hands-on Linux and cloud infrastructure project. Its goal is to operate an Ubuntu server in AWS and make it accessible through a registered domain, while documenting the administration and troubleshooting process.</p>
+            <div class="grid-2">
+              <div class="mini-card"><h3>Primary objectives</h3><p>Provision a cloud server, secure remote access, connect a domain, investigate DNS hosting and publish a website.</p></div>
+              <div class="mini-card"><h3>Learning objectives</h3><p>Practise Linux service management, network diagnostics, DNS records, web-server configuration and AWS cost awareness.</p></div>
+            </div>
+            <div class="callout warning"><strong>Documentation note:</strong> This page separates confirmed observations from proposed configuration examples. A command or configuration shown here does not, by itself, prove that it was successfully deployed.</div>
+          </div>
+        </section>
+
+        <section id="architecture">
+          <div class="section-head"><div class="num">02 / DESIGN</div><h2>Target architecture</h2></div>
+          <div class="panel architecture">
+            <div class="arch-node">Visitor / Administrator</div><span class="arch-arrow">↓</span>
+            <div class="arch-node">Internet</div><span class="arch-arrow">↓</span>
+            <div class="arch-node">Namecheap BasicDNS · linuxcat.site</div><span class="arch-arrow">↓ A record</span>
+            <div class="arch-node">AWS Elastic IP · 54.195.229.213</div><span class="arch-arrow">↓</span>
+            <div class="arch-node">AWS EC2 · Ubuntu Server</div>
+            <span class="arch-arrow">↓</span>
+            <div class="arch-row">
+              <div class="arch-node">SSH · TCP 22</div>
+              <div class="arch-node">DNS · UDP/TCP 53*</div>
+              <div class="arch-node">HTTP · TCP 80</div>
+              <div class="arch-node">HTTPS · TCP 443</div>
+            </div>
+            <span class="arch-arrow">↓</span>
+            <div class="arch-row"><div class="arch-node">Administrator shell</div><div class="arch-node">BIND9*</div><div class="arch-node">Nginx / website</div></div>
+            <p class="small">*BIND9 public authoritative service is a proposed/verification item. Namecheap BasicDNS is the DNS service confirmed in the project history.</p>
+          </div>
+        </section>
+
+        <section id="aws">
+          <div class="section-head"><div class="num">03 / COMPUTE</div><h2>AWS EC2 Ubuntu deployment</h2></div>
+          <div class="panel">
+            <p>Ubuntu Server was launched as an Amazon EC2 instance. The instance provides the Linux environment for administration, DNS experimentation and web hosting.</p>
+            <ol class="steps">
+              <li>Sign in to the AWS Management Console and open <strong>EC2</strong>.</li>
+              <li>Select <strong>Launch instances</strong> and name the instance <code>LinuxCat</code>.</li>
+              <li>Choose an Ubuntu Server AMI and an appropriate instance type.</li>
+              <li>Configure the key pair, VPC, subnet and security group.</li>
+              <li>Allow only the required inbound traffic and launch the instance.</li>
+              <li>Connect using the Ubuntu account and the configured SSH private key.</li>
+            </ol>
+            <h3>IP addresses encountered</h3>
+            <div class="table-wrap"><table><thead><tr><th>Address</th><th>Context</th></tr></thead><tbody>
+              <tr><td>54.195.229.213</td><td>Elastic IP selected as the intended stable public endpoint.</td></tr>
+              <tr><td>172.31.30.183</td><td>Private IPv4 address observed in the AWS environment.</td></tr>
+              <tr><td>3.249.193.58</td><td>Earlier public IP observed during setup.</td></tr>
+              <tr><td>54.74.135.207</td><td>Public IP used in an SSH connection attempt.</td></tr>
+              <tr><td>172.31.18.18</td><td>Private address used in a connection attempt that timed out.</td></tr>
+            </tbody></table></div>
+            <p class="small">Other public IPs appeared in earlier troubleshooting. Public addresses can change when an instance is stopped and started unless an Elastic IP is attached. Confirm the current instance and address in AWS before using them.</p>
+          </div>
+        </section>
+
+        <section id="ssh">
+          <div class="section-head"><div class="num">04 / ACCESS</div><h2>Secure SSH administration</h2></div>
+          <div class="panel">
+            <h3>Generate an ED25519 key pair</h3>
+            <pre><code>ssh-keygen -t ed25519 -f ~/.ssh/aws-ubuntu</code></pre>
+            <p>The private key is <code>~/.ssh/aws-ubuntu</code>; the public key is <code>~/.ssh/aws-ubuntu.pub</code>. Keep the private key secret and copy only the public key to the server.</p>
+            <h3>Configure server-side permissions</h3>
+            <pre><code>mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+sudo chown -R ubuntu:ubuntu /home/ubuntu/.ssh</code></pre>
+            <h3>Connect to the EC2 instance</h3>
+            <pre><code>ssh -i ~/.ssh/aws-ubuntu ubuntu@54.195.229.213</code></pre>
+            <h3>Create a convenient SSH alias</h3>
+            <pre><code>vim ~/.ssh/config</code></pre>
+            <pre><code>Host linuxcat
+    HostName 54.195.229.213
+    User ubuntu
+    Port 22
+    IdentityFile ~/.ssh/aws-ubuntu</code></pre>
+            <pre><code>chmod 600 ~/.ssh/config
+ssh linuxcat</code></pre>
+            <p>The same private key must be securely available to the client machine (for example, the Ubuntu UTM VM) if it is to connect using this method.</p>
+            <div class="callout"><strong>SSH troubleshooting:</strong> <code>Permission denied (publickey)</code> usually points to a username, key, permissions or <code>authorized_keys</code> issue. A timeout usually points to reachability, routing or security-group rules rather than an incorrect key.</div>
+            <h3>Password authentication investigation</h3>
+            <pre><code>sudo passwd ubuntu
+sudo vim /etc/ssh/sshd_config</code></pre>
+            <pre><code>PasswordAuthentication yes
+PubkeyAuthentication yes</code></pre>
+            <pre><code>sudo sshd -t
+sudo systemctl restart ssh</code></pre>
+            <p class="small">Password login was explored, but successful password-based access was not confirmed. Prefer SSH keys and avoid enabling password authentication unless there is a clear operational need.</p>
+          </div>
+        </section>
+
+        <section id="network">
+          <div class="section-head"><div class="num">05 / NETWORK SECURITY</div><h2>AWS security group</h2></div>
+          <div class="panel">
+            <p>Security groups act as stateful virtual firewalls for EC2. The intended inbound rules are:</p>
+            <div class="table-wrap"><table><thead><tr><th>Service</th><th>Protocol</th><th>Port</th><th>Recommended source</th></tr></thead><tbody>
+              <tr><td>SSH</td><td>TCP</td><td>22</td><td>Administrator public IP /32</td></tr>
+              <tr><td>HTTP</td><td>TCP</td><td>80</td><td>0.0.0.0/0 (public website)</td></tr>
+              <tr><td>HTTPS</td><td>TCP</td><td>443</td><td>0.0.0.0/0 (public website)</td></tr>
+              <tr><td>DNS</td><td>UDP + TCP</td><td>53</td><td>Only if intentionally operating public DNS</td></tr>
+            </tbody></table></div>
+            <p>In the AWS Console: EC2 → Instances → select LinuxCat → Security → security group → Edit inbound rules.</p>
+            <div class="callout warning">Do not expose SSH to the whole internet unless necessary. Restrict port 22 to a trusted source address. DNS port 53 should only be opened if BIND9 is intentionally configured to serve external clients.</div>
+          </div>
+        </section>
+
+        <section id="elastic-ip">
+          <div class="section-head"><div class="num">06 / STABLE ADDRESS</div><h2>Elastic IP allocation</h2></div>
+          <div class="panel">
+            <p>An Elastic IP provides a stable public IPv4 address for the EC2 instance. The project recorded <code>54.195.229.213</code> as the intended LinuxCat endpoint.</p>
+            <ol class="steps">
+              <li>Open EC2 → Network &amp; Security → Elastic IPs.</li>
+              <li>Choose <strong>Allocate Elastic IP address</strong>.</li>
+              <li>Select the allocated address and choose <strong>Associate Elastic IP address</strong>.</li>
+              <li>Select the LinuxCat instance and the appropriate private IP, then associate it.</li>
+              <li>Verify the address in the EC2 instance details and test connectivity.</li>
+            </ol>
+            <p class="small">An allocated but unused Elastic IP may incur charges. Review current AWS public IPv4 pricing and release addresses that are no longer needed.</p>
+          </div>
+        </section>
+
+        <section id="dns">
+          <div class="section-head"><div class="num">07 / DOMAIN</div><h2>Connecting linuxcat.site</h2></div>
+          <div class="panel">
+            <p>The domain was registered through Namecheap and used Namecheap BasicDNS. The nameservers observed were:</p>
+            <pre><code>dns1.registrar-servers.com
+dns2.registrar-servers.com</code></pre>
+            <h3>Configure the root A record</h3>
+            <div class="table-wrap"><table><thead><tr><th>Type</th><th>Host</th><th>Value</th></tr></thead><tbody><tr><td>A</td><td>@</td><td>54.195.229.213</td></tr></tbody></table></div>
+            <p>In Namecheap: Domain List → Manage → Advanced DNS → Host Records. Set the root host (<code>@</code>) to the Elastic IP.</p>
+            <h3>Optional www alias</h3>
+            <div class="table-wrap"><table><thead><tr><th>Type</th><th>Host</th><th>Value</th></tr></thead><tbody><tr><td>CNAME</td><td>www</td><td>linuxcat.site</td></tr></tbody></table></div>
+            <h3>Verify DNS records</h3>
+            <pre><code>dig @8.8.8.8 linuxcat.site A
+dig @8.8.8.8 linuxcat.site NS
+dig @8.8.8.8 www.linuxcat.site
+nslookup linuxcat.site
+nslookup linuxcat.site 8.8.8.8</code></pre>
+            <p>A successful public DNS response was observed for the root domain, returning <code>54.195.229.213</code> from Google's resolver. The NS lookup returned the Namecheap registrar nameservers.</p>
+            <div class="callout">A successful A-record lookup proves that DNS resolves to the configured IP. It does not prove that the EC2 server is reachable or that a website is running on ports 80/443.</div>
+          </div>
+        </section>
+
+        <section id="bind">
+          <div class="section-head"><div class="num">08 / DNS SERVICE</div><h2>BIND9 installation and zone configuration</h2></div>
+          <div class="panel">
+            <p>BIND9 was investigated as DNS server software for hosting an authoritative zone. Installing BIND9 on EC2 does not automatically make it authoritative for <code>linuxcat.site</code>; public DNS delegation must also point to the BIND nameservers.</p>
+            <h3>Install packages</h3>
+            <pre><code>sudo apt update
+sudo apt install bind9 bind9-utils dnsutils -y
+named -v
+sudo systemctl status bind9</code></pre>
+            <h3>Important configuration files</h3>
+            <div class="table-wrap"><table><thead><tr><th>File</th><th>Purpose</th></tr></thead><tbody>
+              <tr><td>/etc/bind/named.conf</td><td>Main BIND configuration</td></tr>
+              <tr><td>/etc/bind/named.conf.options</td><td>Global options and access policy</td></tr>
+              <tr><td>/etc/bind/named.conf.local</td><td>Local zone declarations</td></tr>
+              <tr><td>/etc/bind/db.linuxcat.site</td><td>LinuxCat zone data file</td></tr>
+            </tbody></table></div>
+            <h3>Declare the zone</h3>
+            <pre><code>sudo vim /etc/bind/named.conf.local</code></pre>
+            <pre><code>zone "linuxcat.site" {
+    type master;
+    file "/etc/bind/db.linuxcat.site";
+};</code></pre>
+            <h3>Example zone file</h3>
+            <pre><code>sudo vim /etc/bind/db.linuxcat.site</code></pre>
+            <pre><code>$TTL 86400
+
+@ IN SOA ns1.linuxcat.site. admin.linuxcat.site. (
+    2026110801
+    3600
+    1800
+    604800
+    86400
+)
+
+@   IN NS    ns1.linuxcat.site.
+ns1 IN A     54.195.229.213
+@   IN A     54.195.229.213
+www IN CNAME linuxcat.site.</code></pre>
+            <p class="small">This is an illustrative starting point, not evidence that the zone was deployed. A production authoritative setup needs suitable nameserver hostnames, glue records where required, delegation at the registrar, correct firewall rules, and a reliable DNS design. Do not point public delegation at this server until it is correctly configured and tested.</p>
+            <h3>Validate and test</h3>
+            <pre><code>sudo named-checkconf
+sudo named-checkzone linuxcat.site /etc/bind/db.linuxcat.site
+sudo systemctl restart bind9
+sudo systemctl status bind9
+dig @127.0.0.1 linuxcat.site A</code></pre>
+            <h3>systemd enable error encountered</h3>
+            <pre><code>sudo systemctl enable bind9</code></pre>
+            <pre><code>Failed to enable unit: Refusing to operate on linked unit file bind9.service</code></pre>
+            <p>Investigate the installed unit and alias rather than forcing the operation:</p>
+            <pre><code>systemctl list-unit-files | grep -E 'bind|named'
+systemctl status bind9
+systemctl status named</code></pre>
+          </div>
+        </section>
+
+        <section id="web">
+          <div class="section-head"><div class="num">09 / WEB HOSTING</div><h2>Apache2 and Nginx</h2></div>
+          <div class="panel">
+            <p>Nginx was reported as running. Apache2 was also investigated, including its environment configuration. Both commonly listen on TCP port 80, so they should not compete for the same address and port.</p>
+            <div class="grid-2">
+              <div class="mini-card"><h3>Apache2</h3><p>Configuration directory: <code>/etc/apache2/</code><br>Environment file: <code>/etc/apache2/envvars</code></p></div>
+              <div class="mini-card"><h3>Nginx</h3><p>Main config: <code>/etc/nginx/nginx.conf</code><br>Default site: <code>/etc/nginx/sites-available/default</code></p></div>
+            </div>
+            <h3>Install and inspect Apache2</h3>
+            <pre><code>sudo apt update
+sudo apt install apache2 -y
+sudo systemctl status apache2
+sudo apache2ctl configtest
+sudo apache2ctl -S</code></pre>
+            <h3>Inspect Apache environment variables</h3>
+            <pre><code>sudo vim /etc/apache2/envvars</code></pre>
+            <p>Variables such as <code>APACHE_RUN_DIR</code>, <code>APACHE_PID_FILE</code>, <code>APACHE_RUN_USER</code>, <code>APACHE_RUN_GROUP</code> and <code>APACHE_LOG_DIR</code> define Apache's runtime and logging environment. On Ubuntu, manage Apache through systemd and the packaged control utilities rather than launching the daemon manually without its expected environment.</p>
+            <h3>Manage Nginx</h3>
+            <pre><code>sudo systemctl status nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+sudo nginx -t
+sudo systemctl restart nginx</code></pre>
+            <h3>Example LinuxCat Nginx server block</h3>
+            <pre><code>server {
+    listen 80;
+    listen [::]:80;
+
+    server_name linuxcat.site www.linuxcat.site;
+
+    root /var/www/linuxcat;
+    index index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}</code></pre>
+            <h3>Create a simple test website</h3>
+            <pre><code>sudo mkdir -p /var/www/linuxcat
+sudo vim /var/www/linuxcat/index.html</code></pre>
+            <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;title&gt;LinuxCat&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Welcome to LinuxCat&lt;/h1&gt;
+  &lt;p&gt;LinuxCat Linux Server Project&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+            <pre><code>sudo chown -R www-data:www-data /var/www/linuxcat
+sudo find /var/www/linuxcat -type d -exec chmod 755 {} \;
+sudo find /var/www/linuxcat -type f -exec chmod 644 {} \;
+sudo nginx -t
+sudo systemctl restart nginx</code></pre>
+            <p class="small">If using a separate site file, create it under <code>/etc/nginx/sites-available/linuxcat</code> and enable it with a symlink in <code>/etc/nginx/sites-enabled/</code>. The example above is a suggested configuration, not a verified deployed site.</p>
+            <h3>Check for port conflicts</h3>
+            <pre><code>sudo ss -tulpn | grep ':80'
+sudo systemctl stop apache2
+sudo systemctl disable apache2</code></pre>
+            <p>Only stop and disable Apache2 if Nginx is the chosen web server and Apache2 is not needed. Alternatively, configure a deliberate reverse-proxy arrangement.</p>
+          </div>
+        </section>
+
+        <section id="troubleshooting">
+          <div class="section-head"><div class="num">10 / OPERATIONS</div><h2>Network and service troubleshooting</h2></div>
+          <div class="panel">
+            <div class="table-wrap"><table><thead><tr><th>Observed symptom</th><th>Likely area to investigate</th><th>Useful checks</th></tr></thead><tbody>
+              <tr><td>Permission denied (publickey)</td><td>SSH username, private key, key permissions, authorized_keys</td><td><code>ssh -v</code>, <code>chmod</code>, server auth logs</td></tr>
+              <tr><td>Connection timed out</td><td>Security group, route, public/private IP, network ACL</td><td><code>nc -zv</code>, <code>ip route</code>, AWS console</td></tr>
+              <tr><td>Connection refused</td><td>Service not listening, wrong port, local firewall</td><td><code>ss -tulpn</code>, <code>systemctl status</code></td></tr>
+              <tr><td>DNS NXDOMAIN</td><td>Record missing, wrong zone or delegation</td><td><code>dig</code>, <code>dig NS</code></td></tr>
+              <tr><td>DNS timeout</td><td>Resolver connectivity, firewall, DNS service</td><td><code>dig @8.8.8.8</code>, <code>ss -tulpn</code></td></tr>
+              <tr><td>Web server won't start</td><td>Port conflict or invalid configuration</td><td><code>nginx -t</code>, <code>apache2ctl configtest</code></td></tr>
+            </tbody></table></div>
+            <h3>General diagnostic commands</h3>
+            <pre><code>ip addr
+ip route
+hostname -I
+ping -c 4 8.8.8.8
+ping -c 4 linuxcat.site
+traceroute linuxcat.site
+curl -4 ifconfig.me
+sudo ufw status
+sudo journalctl -xe</code></pre>
+            <h3>Check listening ports</h3>
+            <pre><code>sudo ss -tulpn</code></pre>
+            <p><code>-t</code> TCP · <code>-u</code> UDP · <code>-l</code> listening · <code>-p</code> process · <code>-n</code> numeric output.</p>
+          </div>
+        </section>
+
+        <section id="monitoring">
+          <div class="section-head"><div class="num">11 / COST CONTROL</div><h2>AWS billing and monitoring</h2></div>
+          <div class="panel">
+            <p>The project target is to keep AWS expenditure visible and aim for a monthly budget of <strong>$10</strong>. This is a budget target, not a guaranteed maximum charge.</p>
+            <h3>Create a monthly AWS budget</h3>
+            <ol class="steps">
+              <li>Open Billing and Cost Management → Budgets.</li>
+              <li>Create a cost budget with a monthly period.</li>
+              <li>Set the budget amount to <code>10 USD</code>.</li>
+              <li>Configure alert thresholds, for example 50%, 80% and 100%.</li>
+              <li>Add an email notification recipient and create the budget.</li>
+            </ol>
+            <h3>Suggested daily review metrics</h3>
+            <div class="table-wrap"><table><thead><tr><th>Metric</th><th>What to monitor</th></tr></thead><tbody>
+              <tr><td>EC2 usage</td><td>Instance state and running hours</td></tr>
+              <tr><td>Compute cost</td><td>Estimated EC2 charges</td></tr>
+              <tr><td>Elastic IP / public IPv4</td><td>Allocation, association and applicable charges</td></tr>
+              <tr><td>Data transfer</td><td>Outbound traffic and related charges</td></tr>
+              <tr><td>Budget consumption</td><td>Actual and forecast spend against $10</td></tr>
+            </tbody></table></div>
+            <p>Useful AWS services include Cost Explorer, AWS Budgets and CloudWatch. A daily dashboard or report requires additional configuration; creating a budget alone does not create a complete daily report.</p>
+            <div class="callout warning">AWS Budgets sends alerts but does not automatically stop resources or cap spending. Check current pricing for the selected region and instance type.</div>
+          </div>
+        </section>
+
+        <section id="status">
+          <div class="section-head"><div class="num">12 / DELIVERY</div><h2>Project status and next steps</h2></div>
+          <div class="panel">
+            <p class="lead">This status is based on the available project conversation and configuration notes. It is not a live inspection of the AWS account or server.</p>
+            <div class="table-wrap"><table><thead><tr><th>Component</th><th>Status</th><th>Evidence / next action</th></tr></thead><tbody>
+              <tr><td>EC2 Ubuntu instance</td><td><span class="status done">Created</span></td><td>Instance deployment discussed and used.</td></tr>
+              <tr><td>SSH key authentication</td><td><span class="status done">Configured</span></td><td>ED25519 key and SSH connection workflow documented.</td></tr>
+              <tr><td>Elastic IP</td><td><span class="status done">Allocated</span></td><td>54.195.229.213 recorded as intended stable endpoint.</td></tr>
+              <tr><td>Namecheap domain / BasicDNS</td><td><span class="status done">Configured</span></td><td>Registrar nameservers and root A lookup observed.</td></tr>
+              <tr><td>www CNAME</td><td><span class="status pending">Verify</span></td><td>Check <code>dig www.linuxcat.site</code>.</td></tr>
+              <tr><td>BIND9 installation</td><td><span class="status pending">Verify</span></td><td>Check installed packages and service status.</td></tr>
+              <tr><td>BIND9 public authority</td><td><span class="status pending">Not verified</span></td><td>Complete zone, nameserver delegation and external tests if required.</td></tr>
+              <tr><td>Nginx</td><td><span class="status done">Reported running</span></td><td>Verify current service and site configuration.</td></tr>
+              <tr><td>Apache2</td><td><span class="status unknown">Investigated</span></td><td>Check whether installed or required; avoid port conflict.</td></tr>
+              <tr><td>HTTPS / TLS</td><td><span class="status pending">Verify</span></td><td>Install and test a certificate for root and www hostnames.</td></tr>
+              <tr><td>$10 AWS budget</td><td><span class="status pending">Verify</span></td><td>Confirm budget and notification thresholds in Billing.</td></tr>
+              <tr><td>Daily reporting</td><td><span class="status pending">Verify</span></td><td>Configure a report or dashboard schedule.</td></tr>
+            </tbody></table></div>
+            <h3>Recommended completion checklist</h3>
+            <ul>
+              <li>Confirm the current EC2 instance and Elastic IP association.</li>
+              <li>Confirm SSH access using the <code>linuxcat</code> alias.</li>
+              <li>Confirm root and www DNS records.</li>
+              <li>Choose whether DNS remains with Namecheap or moves to a self-hosted authoritative BIND9 service.</li>
+              <li>Choose one web-server architecture and verify the site responds over HTTP.</li>
+              <li>Configure HTTPS and test certificate renewal.</li>
+              <li>Confirm AWS budget alerts and cost reporting.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="commands">
+          <div class="section-head"><div class="num">13 / QUICK REFERENCE</div><h2>LinuxCat command reference</h2></div>
+          <div class="panel">
+            <h3>System update and packages</h3>
+            <pre><code>sudo apt update && sudo apt upgrade -y
+sudo apt install bind9 bind9-utils dnsutils -y
+sudo apt install nginx -y
+sudo apt install apache2 -y</code></pre>
+            <h3>SSH</h3>
+            <pre><code>ssh-keygen -t ed25519 -f ~/.ssh/aws-ubuntu
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/aws-ubuntu
+chmod 600 ~/.ssh/config
+ssh -i ~/.ssh/aws-ubuntu ubuntu@54.195.229.213
+ssh linuxcat</code></pre>
+            <h3>DNS and BIND9</h3>
+            <pre><code>dig @8.8.8.8 linuxcat.site A
+dig @8.8.8.8 linuxcat.site NS
+dig @8.8.8.8 www.linuxcat.site
+nslookup linuxcat.site
+sudo named-checkconf
+sudo named-checkzone linuxcat.site /etc/bind/db.linuxcat.site
+sudo systemctl status bind9</code></pre>
+            <h3>Web services</h3>
+            <pre><code>sudo nginx -t
+sudo systemctl status nginx
+sudo systemctl restart nginx
+sudo apache2ctl configtest
+sudo systemctl status apache2
+sudo systemctl restart apache2
+curl -I http://linuxcat.site
+curl -I https://linuxcat.site</code></pre>
+            <h3>Network diagnostics</h3>
+            <pre><code>ip addr
+ip route
+hostname -I
+curl -4 ifconfig.me
+sudo ss -tulpn
+sudo ss -tulpn | grep ':80'
+nc -zv 54.195.229.213 22
+ping -c 4 8.8.8.8
+traceroute linuxcat.site
+sudo ufw status
+sudo journalctl -xe</code></pre>
+          </div>
+        </section>
+
+        <section>
+          <div class="panel">
+            <div class="eyebrow">Project summary</div>
+            <h2>Learn by building. Document what works.</h2>
+            <p class="lead">LinuxCat brings together practical Linux administration and cloud infrastructure skills: provisioning an Ubuntu host, securing remote access, managing DNS, configuring a web server and monitoring cloud costs.</p>
+            <p class="small">Domain: <a href="https://linuxcat.site" rel="noopener noreferrer">linuxcat.site</a> · Platform: AWS EC2 · OS: Ubuntu Server</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="wrap">LinuxCat project documentation · Prepared for GitHub · Update IP addresses, service status and configuration details as the infrastructure evolves.</div>
+  </footer>
+
+  <script>
+    document.querySelectorAll("pre").forEach((block) => {
+      const button = document.createElement("button");
+      button.className = "copy";
+      button.type = "button";
+      button.textContent = "Copy";
+      button.addEventListener("click", async () => {
+        const code = block.querySelector("code");
+        try {
+          await navigator.clipboard.writeText(code.innerText);
+          button.textContent = "Copied";
+          setTimeout(() => button.textContent = "Copy", 1400);
+        } catch {
+          button.textContent = "Select code";
+        }
+      });
+      block.appendChild(button);
+    });
+  </script>
+</body>
+</html>
