@@ -45,10 +45,6 @@ The complete project documentation is available in:
 
 `index.html`
 
-## Live Project
-
-Visit: https://linuxcat.site
-
 ## Learning Outcomes
 
 This project provides practical experience in:
