@@ -66,3 +66,17 @@ This project provides practical experience in:
 **Project:** LinuxCat  
 **Platform:** AWS EC2  
 **Operating System:** Ubuntu Linux
+
+## Project Screenshots
+
+### LinuxCat Live Website
+
+![LinuxCat Website](screenshots/LinuxcatLive.png)
+
+### AWS EC2 Deployment
+
+![AWS EC2](screenshots/EC2Instance.png)
+
+### DNS Resolution
+
+![DNS Resolution](screenshots/DNSResolution.png)

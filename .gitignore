@@ -1,0 +1,21 @@
+# Private keys and credentials
+*.pem
+*.key
+id_rsa
+id_ed25519
+aws-ubuntu
+.env
+.env.*
+
+# SSH and cloud credentials
+.ssh/
+.aws/
+
+# Let's Encrypt private material
+privkey.pem
+/etc/letsencrypt/
+
+# Temporary files
+*.log
+.DS_Store
+*.swp

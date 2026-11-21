@@ -1,0 +1,15 @@
+$TTL 86400
+
+@ IN SOA ns1.linuxcat.site. admin.linuxcat.site. (
+    2026111701
+    3600
+    1800
+    604800
+    86400
+)
+
+@   IN NS    ns1.linuxcat.site.
+
+ns1 IN A     54.195.229.213
+@   IN A     54.195.229.213
+www IN CNAME linuxcat.site

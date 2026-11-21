@@ -1,0 +1,4 @@
+zone "linuxcat.site" {
+    type master;
+    file "/etc/bind/db.linuxcat.site";
+};
