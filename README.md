@@ -6,7 +6,6 @@ LinuxCat is a hands-on Linux administration and cloud infrastructure
 project documenting the deployment and configuration of an Ubuntu
 server on AWS EC2.
 
-🌐 **Live Website:** https://linuxcat.site
 
 ## Technologies Used
 
